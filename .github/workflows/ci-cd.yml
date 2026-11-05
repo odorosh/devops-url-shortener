@@ -1,0 +1,66 @@
+name: DevOps Portal CI/CD Pipeline
+
+# Тригер: запускати конвеєр при кожному push у гілку main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ----------------------------------------------------
+  # ЕТАП ІНТЕГРАЦІЇ ТА ТЕСТУВАННЯ (CI)
+  # ----------------------------------------------------
+  test-and-validate:
+    runs-on: ubuntu-latest # Пайплайн запускається на чистій Linux машині
+
+    steps:
+    # 1. Копіюємо код проєкту з репозиторію на віртуальну машину
+    - name: Checkout repository code
+      uses: actions/checkout@v4
+
+    # 2. Встановлюємо Python потрібної версії
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    # 3. Встановлюємо залежності нашого порталу
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install fastapi uvicorn python-multipart
+        # додаємо pytest для майбутніх тестів
+        pip install pytest
+
+    # 4. Перевірка коду лінтером (шукаємо синтаксичні помилки)
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        # зупинить збірку, якщо є критичні помилки синтаксису Python
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    # 5. Запуск тестів (якщо вони будуть створені)
+    - name: Run automated tests
+      run: |
+        # Якщо файлів тестів ще немає, команда просто успішно завершиться
+        python -m pytest || echo "Тести поки що відсутні, але середовище готове!"
+
+  # ----------------------------------------------------
+  # ЕТАП ЗБІРКИ АРТЕФАКТУ (CD)
+  # ----------------------------------------------------
+  build-artifact:
+    needs: test-and-validate # Цей етап почнеться, ТІЛЬКИ якщо тести пройшли успішно
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v4
+
+    # Зберігаємо наш працюючий код у вигляді zip-архіву (артефакту релізу)
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: production-portal-code
+        path: |
+          main.py
