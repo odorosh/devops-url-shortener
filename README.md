@@ -32,8 +32,8 @@ Every time a developer performs a `git push`, the automated workflow executes th
    ```
 
 4. Open your browser and navigate to:
-   * Main Web Interface: `http://127.0.0`
-   * Interactive API Docs: `http://127.0.0docs`
+   * Main Web Interface: `http://127.0.0.1:8000/`
+   * Interactive API Docs: `http://127.0.0.1:8000/docs`
 
 ## 🧪 Running Tests
 To validate the application behavior locally, execute:
