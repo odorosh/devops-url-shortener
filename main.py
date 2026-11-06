@@ -1,24 +1,54 @@
+import os
+import psycopg2
 from fastapi import FastAPI, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-app = FastAPI()
+app = FastAPI(title="DevOps Production Portal")
 
-# Наша тимчасова база даних у пам'яті
-db_links = {
-    "fedora": "https://getfedora.org"
+# Динамічно беремо хост з системи (якщо ми на GitHub — там буде 'localhost')
+# Якщо ми на Fedora — хост буде порожнім (підключення через сокет)
+DB_HOST = os.getenv("DB_HOST", "")
+
+DB_PARAMS = {
+    "dbname": "portal_db",
+    "user": "portal_user",
+    "password": "my_password"
 }
 
-# 1. Головна сторінка з чистою HTML-формою (ЖОДНОГО JavaScript!)
+# Якщо хост задано (наприклад, на GitHub), додаємо його в параметри
+if DB_HOST:
+    DB_PARAMS["host"] = DB_HOST
+    DB_PARAMS["port"] = "5432"
+
+# Ця функція автоматично створює таблицю в PostgreSQL при запуску сервера
+@app.on_event("startup")
+def setup_database():
+    try:
+        conn = psycopg2.connect(**DB_PARAMS)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS urls (
+                id SERIAL PRIMARY KEY,
+                short_code VARCHAR(50) UNIQUE NOT NULL,
+                long_url TEXT NOT NULL
+            );
+        """)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("✅ Успішно підключено до PostgreSQL. Таблиця 'urls' готова!")
+    except Exception as e:
+        print(f"❌ Помилка ініціалізації бази даних: {e}")
+
+# 1. Головна сторінка з HTML-формою
 @app.get("/", response_class=HTMLResponse)
 def home():
     html_content = """
     <html>
         <head><title>DevOps URL Shortener</title></head>
         <body>
-            <h2>🚀 Мій DevOps Портал (Pure Python & HTML)</h2>
-            <p>Заповніть форму, щоб створити коротке посилання:</p>
-
-            <!-- Класична форма HTML. При натисканні кнопки вона сама відправить POST-запит -->
+            <h2>🚀 Мій DevOps Портал (Python + PostgreSQL)</h2>
+            <p>Заповніть форму, щоб зберегти посилання в базу даних:</p>
             <form action="/shorten" method="post">
                 <label>Короткий код:</label><br>
                 <input type="text" name="short_code" placeholder="Наприклад: google" required><br><br>
@@ -33,25 +63,47 @@ def home():
     """
     return html_content
 
-# 2. Функція приймає дані з форми
+# 2. Ендпоінт, який записує дані в PostgreSQL
 @app.post("/shorten", response_class=HTMLResponse)
 def shorten_url(short_code: str = Form(...), long_url: str = Form(...)):
-    db_links[short_code] = long_url
+    try:
+        conn = psycopg2.connect(**DB_PARAMS)
+        cursor = conn.cursor()
+        # Записуємо нове посилання в таблицю
+        cursor.execute(
+            "INSERT INTO urls (short_code, long_url) VALUES (%s, %s);",
+            (short_code, long_url)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
 
-    # Повертаємо сторінку з результатом
-    return f"""
-    <html>
-        <body>
-            <h3>🎉 Готово!</h3>
-            <p>Ваше коротке посилання: <a href="http://127.0.0{short_code}">http://127.0.0{short_code}</a></p>
-            <a href="/"> <- Повернутися назад</a>
-        </body>
-    </html>
-    """
+        return f"""
+        <html>
+            <body>
+                <h3>🎉 Дані успішно збережено в PostgreSQL!</h3>
+                <p>Ваше коротке посилання: <a href="http://127.0.0{short_code}">http://127.0.0{short_code}</a></p>
+                <a href="/"> <- Повернутися назад</a>
+            </body>
+        </html>
+        """
+    except psycopg2.errors.UniqueViolation:
+        raise HTTPException(status_code=400, detail="Цей код вже зайнятий у базі даних!")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Помилка бази даних: {e}")
 
-# 3. Функція редіректу
+# 3. Ендпоінт для редіректу (читання з PostgreSQL)
 @app.get("/{short_code}")
 def redirect_to_url(short_code: str):
-    if short_code in db_links:
-        return RedirectResponse(url=db_links[short_code])
-    raise HTTPException(status_code=404, detail="Посилання не знайдено")
+    conn = psycopg2.connect(**DB_PARAMS)
+    cursor = conn.cursor()
+    # Шукаємо посилання за кодом
+    cursor.execute("SELECT long_url FROM urls WHERE short_code = %s;", (short_code,))
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if result:
+        # result повертає кортеж, наприклад ('https://google.com',), тому беремо [0]
+        return RedirectResponse(url=result[0])
+    raise HTTPException(status_code=404, detail="Посилання не знайдено в базі даних")
