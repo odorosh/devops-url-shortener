@@ -1,6 +1,5 @@
 name: DevOps Portal CI/CD Pipeline
 
-# Тригери: запускати конвеєр при кожному push або pull_request у гілку main
 on:
   push:
     branches: [ "main" ]
@@ -8,23 +7,18 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # ----------------------------------------------------
-  # ЕТАП ІНТЕГРАЦІЇ ТА ТЕСТУВАННЯ (CI)
-  # ----------------------------------------------------
   test-and-validate:
-    runs-on: ubuntu-latest # Запуск на чистій Linux-машині в хмарі GitHub
+    runs-on: ubuntu-latest
 
-    # Автоматично піднімаємо тимчасову базу PostgreSQL для тестів
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_DB: portal_db
-          POSTGRES_USER: postgres       # Суперкористувач за замовчуванням на GitHub
-          POSTGRES_PASSWORD: postgres   # Пароль для тестового середовища
+          POSTGRES_USER: portal_user       # Створюємо користувача як на вашій Fedora
+          POSTGRES_PASSWORD: my_password   # Пароль як на вашій Fedora
         ports:
           - 5432:5432
-        # Перевірка працездатності бази перед початком тестів
         options: >-
           --health-cmd pg_isready
           --health-interval 5s
@@ -32,53 +26,43 @@ jobs:
           --health-retries 5
 
     steps:
-    # 1. Клонуємо ваш код з репозиторію на віртуальну машину
     - name: Checkout repository code
       uses: actions/checkout@v4
 
-    # 2. Налаштовуємо Python версії 3.11
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    # 3. Встановлюємо всі пакети з вашого requirements.txt (включаючи psycopg2-binary)
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest flake8
 
-    # 4. Перевіряємо якість коду через flake8 (налаштовано без жорсткої зупинки білду через пробіли)
     - name: Lint with flake8
       run: |
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    # 5. Гарантована пауза у 5 секунд, щоб контейнер бази даних точно встиг повністю ініціалізуватися
     - name: Wait for PostgreSQL
       run: sleep 5
 
-    # 6. Запуск автоматичних тестів із передачею динамічних хмарних налаштувань для бази
+    # Передаємо повністю ідентичні налаштування для тестування
     - name: Run automated tests
       env:
         DB_HOST: 127.0.0.1
-        DB_USER: postgres
-        DB_PASSWORD: postgres
+        DB_USER: portal_user
+        DB_PASSWORD: my_password
       run: |
         python -m pytest
 
-  # ----------------------------------------------------
-  # ЕТАП ЗБІРКИ АРТЕФАКТУ РЕЛІЗУ (CD)
-  # ----------------------------------------------------
   build-artifact:
-    needs: test-and-validate # Цей крок почнеться тільки якщо тести пройшли успішно (зелені)
+    needs: test-and-validate
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout repository code
       uses: actions/checkout@v4
 
-    # Пакуємо та зберігаємо ваш працюючий код у готовий до деплою zip-архів
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:

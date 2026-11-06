@@ -28,13 +28,7 @@ def setup_database():
         conn = psycopg2.connect(**DB_PARAMS)
         cursor = conn.cursor()
 
-        # 🌟 Автоматично даємо права на схему (врятує тести на GitHub Actions)
-        try:
-            cursor.execute("GRANT ALL ON SCHEMA public TO portal_user;")
-            conn.commit()
-        except Exception:
-            conn.rollback() # Якщо ми зайшли як суперюзер і права вже є
-
+        # Залишаємо тільки чисте створення таблиці
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS urls (
                 id SERIAL PRIMARY KEY,
