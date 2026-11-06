@@ -5,17 +5,18 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 app = FastAPI(title="DevOps Production Portal")
 
-# Динамічно беремо хост з системи (якщо ми на GitHub — там буде 'localhost')
-# Якщо ми на Fedora — хост буде порожнім (підключення через сокет)
+# Динамічно зчитуємо змінні з системи (зручно для CI/CD)
 DB_HOST = os.getenv("DB_HOST", "")
+DB_USER = os.getenv("DB_USER", "portal_user")  # за замовчуванням portal_user
+DB_PASSWORD = os.getenv("DB_PASSWORD", "my_password")
 
 DB_PARAMS = {
     "dbname": "portal_db",
-    "user": "portal_user",
-    "password": "my_password"
+    "user": DB_USER,
+    "password": DB_PASSWORD
 }
 
-# Якщо хост задано (наприклад, на GitHub), додаємо його в параметри
+# Якщо ми на GitHub (де вказано хост), додаємо мережеві налаштування
 if DB_HOST:
     DB_PARAMS["host"] = DB_HOST
     DB_PARAMS["port"] = "5432"
