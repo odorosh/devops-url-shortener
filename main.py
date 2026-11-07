@@ -11,11 +11,11 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "my_password")
 DB_NAME = os.getenv("DB_NAME", "portal_db")
 
 if DB_HOST:
-    # Мережеве підключення для GitHub Actions (TCP/IP)
-    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
+    # Мережеве підключення для GitHub Actions (Wskazujemy jawnie +psycopg2)
+    DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
 else:
-    # Швидке підключення через Unix-сокет для вашої Fedora Linux
-    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}"
+    # Швидке підключення через Unix-сокет для вашої Fedora Linux (Wskazujemy jawnie +psycopg2)
+    DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}"
 
 # 2. Ініціалізація двигуна SQLAlchemy (він сам керує транзакціями та сокетами)
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
