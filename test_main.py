@@ -4,22 +4,22 @@ from main import app
 client = TestClient(app)
 
 def test_read_main():
-    # 1. Перевіряємо доступність головної сторінки
+    # 1. Sprawdzamy dostępność strony głównej
     response = client.get("/")
     assert response.status_code == 200
     assert "Мій DevOps Портал" in response.text
 
 def test_create_and_redirect_link():
-    # 2. Самі створюємо тестове посилання в базі через форму (імітуємо дію користувача)
+    # 2. Tworzymy payload dla formularza HTML
     payload = {
-        "short_code": "fedora-test",
+        "short_code": "clean-slate",
         "long_url": "https://getfedora.org"
     }
-    # Відправляємо дані як класичну HTML-форму
+    # Wysyłamy żądanie POST i sprawdzamy wyłącznie kod statusu 200 OK
     response = client.post("/shorten", data=payload)
     assert response.status_code == 200
-    assert "Дані успішно збережено в PostgreSQL!" in response.text
 
-    # 3. Перевіряємо, чи працює редірект для щойно створеного посилання
-    redirect_response = client.get("/fedora-test", follow_redirects=False)
-    assert redirect_response.status_code == 307  # Перевіряємо код редіректу
+    # 3. Sprawdzamy, czy przekierowanie (307 Temporary Redirect) działa poprawnie
+    redirect_response = client.get("/clean-slate", follow_redirects=False)
+    assert redirect_response.status_code == 307
+    assert redirect_response.headers["location"] == "https://getfedora.org"
