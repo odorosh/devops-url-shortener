@@ -23,9 +23,10 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # 3. Опис моделі таблиці (SQLAlchemy сама створить її без сирого SQL коду)
+# 3. Model bazy danych (poprawione na małe litery: primary_key)
 class URLModel(Base):
     __tablename__ = "urls"
-    id = Column(Integer, PRIMARY KEY=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     short_code = Column(String(50), unique=True, index=True, nullable=False)
     long_url = Column(String, nullable=False)
 

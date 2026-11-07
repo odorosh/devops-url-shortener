@@ -1,42 +1,36 @@
-# 🚀 DevOps URL Shortener Portal & CI/CD Pipeline
+# DevOps Production URL Shortener 🚀
 
-This project implements a web portal architecture and a fully automated **CI/CD pipeline** for a pure Python application (0% JavaScript), built according to modern DevOps best practices and designed to run natively on Linux environments.
+A robust, cloud-ready web application for URL shortening, built with industry-standard DevOps infrastructure and development practices. This project demonstrates the integration of a modern Python web framework with a reliable relational database storage layer, coupled with automated testing in a containerized cloud environment.
 
-## 🛠️ Tech Stack & Infrastructure
-* **Backend Framework:** FastAPI (Python 3.11+) – asynchronous architecture closely mirroring serverless concepts.
-* **Frontend Interface:** Pure HTML5 + HTTP Forms (Zero JavaScript dependency).
-* **Development OS:** Fedora Linux (utilizing native system packages and configuration).
-* **Automation (CI/CD):** GitHub Actions.
+## 🛠️ Tech Stack
+- **Backend:** Python 3.11, FastAPI
+- **Database ORM:** SQLAlchemy (Enterprise-grade transactions, Connection Pooling)
+- **Database:** PostgreSQL (Native Unix-domain socket execution for local environments)
+- **Testing Suite:** Pytest, HTTPX
+- **CI/CD Automation:** GitHub Actions (Automated linting, dynamic isolated PostgreSQL 15 service container orchestration)
 
-## ⚙️ CI/CD Pipeline Architecture (GitHub Actions)
-Every time a developer performs a `git push`, the automated workflow executes the following stages:
-1. **Linting & Validation:** Code syntax validation using `flake8` to ensure compliance with Python standards.
-2. **Automated Testing:** Execution of test suites via `pytest` to verify endpoint availability, HTML rendering, and proper 307 redirect responses.
-3. **Artifact Generation (CD Ready):** Upon successful validation, the production-ready code is packaged into a deployment artifact.
+## 🏗️ Infrastructure & Environment Architecture
+The application is designed using a **Cloud-Agnostic** paradigm. Database connection configurations are handled dynamically using system environment variables:
+1. **Local Development Environment (Fedora Linux):** The app connects via ultra-fast local Linux Unix-domain sockets using the dedicated privileges assigned to the `portal_user` database role.
+2. **Testing & Validation Layer (GitHub Actions):** The automated pipeline spins up an isolated Docker service container running PostgreSQL 15, streams network parameters via `env` scopes, and runs integration test cases before compiling the release package.
 
-## 🚀 How to Run Locally on Fedora Linux
-
-1. Install the required system packages:
+## 🚀 Local Deployment Setup on Fedora
+1. Ensure the native PostgreSQL service layer is active:
    ```bash
-   sudo dnf install -y python3-fastapi python3-uvicorn python3-multipart python3-pytest
+   sudo systemctl start postgresql
    ```
-
-2. Clone the repository and navigate to the project root:
+2. Install the production-grade dependency constraints:
    ```bash
-   cd devops-url-shortener
+   pip install -r requirements.txt
    ```
-
-3. Launch the development server:
+3. Boot the local Uvicorn development server:
    ```bash
    python3 -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
    ```
+4. Access the production portal dashboard: `http://127.0.0`
 
-4. Open your browser and navigate to:
-   * Main Web Interface: `http://127.0.0.1:8000/`
-   * Interactive API Docs: `http://127.0.0.1:8000/docs`
-
-## 🧪 Running Tests
-To validate the application behavior locally, execute:
-```bash
-python3 -m pytest
-```
+## 🏁 CI/CD Pipeline Workflow
+Every single `git push` or pull request targeting the `main` branch triggers an end-to-end automated verification cycle:
+- **Code Quality Guard (Linting):** Python code style verification via strict `flake8` diagnostics.
+- **Integration Layer Verification (Testing):** Automatic schema orchestration and live endpoint validation against a dynamic cloud database instance via `pytest`.
+- **Artifact Delivery (CD Preview):** Packaging the verified source tree into a clean deployment artifact (`production-portal-code`).
