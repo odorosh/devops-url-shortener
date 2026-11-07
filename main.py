@@ -28,7 +28,14 @@ def setup_database():
         conn = psycopg2.connect(**DB_PARAMS)
         cursor = conn.cursor()
 
-        # Залишаємо тільки чисте створення таблиці
+        # 🔥 DevOps-захист: динамічно виправляємо права на схему public, якщо їх немає
+        try:
+            cursor.execute("GRANT ALL ON SCHEMA public TO public;")
+            conn.commit()
+        except Exception:
+            conn.rollback()  # Ігноруємо, якщо користувач не має права видавати гранти
+
+        # Створення таблиці
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS urls (
                 id SERIAL PRIMARY KEY,

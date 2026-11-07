@@ -15,8 +15,8 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_DB: portal_db
-          POSTGRES_USER: portal_user       # Створюємо користувача як на вашій Fedora
-          POSTGRES_PASSWORD: my_password   # Пароль як на вашій Fedora
+          POSTGRES_USER: postgres       # Суперкористувач гарантує проходження міграцій
+          POSTGRES_PASSWORD: my_password
         ports:
           - 5432:5432
         options: >-
@@ -47,11 +47,12 @@ jobs:
     - name: Wait for PostgreSQL
       run: sleep 5
 
-    # Передаємо повністю ідентичні налаштування для тестування
     - name: Run automated tests
       env:
         DB_HOST: 127.0.0.1
-        DB_USER: portal_user
+        DB_PORT: 5432
+        DB_NAME: portal_db
+        DB_USER: postgres       # Тести йдуть через суперадміна з повними правами
         DB_PASSWORD: my_password
       run: |
         python -m pytest
