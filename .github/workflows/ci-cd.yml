@@ -15,7 +15,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_DB: portal_db
-          POSTGRES_USER: postgres       # Суперкористувач гарантує проходження міграцій
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: my_password
         ports:
           - 5432:5432
@@ -38,7 +38,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest flake8
+        pip install flake8
 
     - name: Lint with flake8
       run: |
@@ -50,10 +50,9 @@ jobs:
     - name: Run automated tests
       env:
         DB_HOST: 127.0.0.1
-        DB_PORT: 5432
-        DB_NAME: portal_db
-        DB_USER: postgres       # Тести йдуть через суперадміна з повними правами
+        DB_USER: postgres
         DB_PASSWORD: my_password
+        DB_NAME: portal_db
       run: |
         python -m pytest
 
