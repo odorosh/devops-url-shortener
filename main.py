@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.pool import QueuePool
 
 # 1. Dynamiczne pobieranie zmiennych środowiskowych
 DB_HOST = os.getenv("DB_HOST", "")
@@ -15,10 +16,19 @@ if DB_HOST:
 else:
     DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}"
 
-# 2. Inicjalizacja silnika i sesji SQLAlchemy
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+# 2. Inicjalizacja stabilnego silnika dla DevOps (odpornego na mikro-rozłączenia chmurowe)
+engine = create_engine(
+    DATABASE_URL,
+    poolclass=QueuePool,
+    pool_size=10,           # Maksymalna liczba stałych połączeń
+    max_overflow=20,         # Dodatkowe tymczasowe połączenia przy obciążeniu testami
+    pool_timeout=30,        # Maksymalny czas oczekiwania na wolne połączenie
+    pool_pre_ping=True      # Automatyczne sprawdzanie i wznawianie zerwanych sesji
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
 
 # 3. Definicja modelu bazy danych
 class URLModel(Base):
